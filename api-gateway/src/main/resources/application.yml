@@ -1,0 +1,50 @@
+server:
+  port: 4004 # Gateway listens on port 4004
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.burstCapacity: 5
+            redis-rate-limiter.replenishRate: 5
+            key-resolver: "#{@ipKeyResolver}"
+
+      routes:
+        # Route for auth-service
+        - id: auth-service-route
+          uri: http://auth-service:4005
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+        # Route for /api/patients/** to patient-service
+        - id: patient-service-route
+          uri: http://patient-service:4000
+          predicates:
+            - Path=/api/patients/**
+          filters:
+            - StripPrefix=1
+            - JwtValidation
+
+        # ---------------------------
+        # Swagger UI (Patient Service)
+        # ---------------------------
+        - id: patient-swagger-ui
+          uri: http://patient-service:4000
+          predicates:
+            - Path=/swagger-ui/**
+
+        # ---------------------------
+        # OpenAPI Docs (Patient Service)
+        # ---------------------------
+        - id: patient-api-docs
+          uri: http://patient-service:4000
+          predicates:
+            - Path=/v3/api-docs/**
