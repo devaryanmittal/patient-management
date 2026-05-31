@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import com.pm.patient_service.mapper.PatientMapper;
 import com.pm.patient_service.model.Patient;
 import com.pm.patient_service.repository.PatientRepository;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+
 @Service
 public class PatientService {
 
@@ -30,11 +35,18 @@ public class PatientService {
     private final BillingInterface patientInterface;
     private final KafkaProducer kafkaProducer;
 
+    private PatientService self;
+
     public PatientService(PatientRepository patientRepository, BillingInterface patientInterface,
             KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
         this.patientInterface = patientInterface;
         this.kafkaProducer = kafkaProducer;
+    }
+
+    @Autowired
+    public void setSelf(@Lazy PatientService self) {
+        this.self = self;
     }
 
     @Cacheable(value = "patients", key = "{#size, #page, #sort, #sortField}", condition = "#searchValue == null || #searchValue.isEmpty()")
@@ -71,21 +83,30 @@ public class PatientService {
         }
         Patient patient = PatientMapper.toPatient(patientRequestDTO);
         Patient savedPatient = patientRepository.save(patient);
-
-        // Use Feign client to create billing account for the new patient
-        try {
-            BillingRequestDTO billingRequest = new BillingRequestDTO();
-            billingRequest.setName(savedPatient.getName());
-            billingRequest.setEmail(savedPatient.getEmail());
-            billingRequest.setPatientId(savedPatient.getId().toString());
-            billingRequest.setAccountType("STANDARD");
-            patientInterface.createBillingAccount(billingRequest);
-        } catch (Exception e) {
-            // Log error but don't fail patient creation if billing service fails
-            System.err.println("Failed to create billing account for patient: " + e.getMessage());
-        }
+        // Use self-invocation to ensure Spring AOP intercepts the circuit breaker
+        self.callBillingService(savedPatient);
         kafkaProducer.sendPatientCreatedEvent(savedPatient);
         return PatientMapper.toDTO(savedPatient);
+    }
+
+    @CircuitBreaker(name = "billingService", fallbackMethod = "callBillingServiceFallback")
+    @Retry(name = "billingRetry")
+    public void callBillingService(Patient savedPatient) {
+        BillingRequestDTO billingRequest = new BillingRequestDTO();
+        // Use Feign client to create billing account for the new patient
+        billingRequest.setName(savedPatient.getName());
+        billingRequest.setEmail(savedPatient.getEmail());
+        billingRequest.setPatientId(savedPatient.getId().toString());
+        billingRequest.setAccountType("STANDARD");
+        patientInterface.createBillingAccount(billingRequest);
+    }
+
+    public void callBillingServiceFallback(Patient savedPatient, Throwable e) {
+        // Log error but don't fail patient creation if billing service fails or circuit
+        // is open
+        System.err
+                .println("Failed to create billing account for patient (Circuit Breaker Fallback): " + e.getMessage());
+        kafkaProducer.sendBillingAccountEvent(savedPatient);
     }
 
     public PatientResponseDTO updatePatient(UUID id, PatientRequestDTO patientRequestDTO) {

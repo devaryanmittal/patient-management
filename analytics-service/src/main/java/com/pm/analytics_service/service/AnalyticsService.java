@@ -2,10 +2,13 @@ package com.pm.analytics_service.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.stereotype.Service;
+
 import com.pm.analytics_service.kafka.KafkaEvent;
 import com.pm.analytics_service.model.DashboardMetrics;
 import com.pm.analytics_service.repository.DashboardMetricsRepository;
 
+@Service
 public class AnalyticsService {
 
     private final DashboardMetricsRepository metricsRepository;

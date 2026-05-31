@@ -39,4 +39,18 @@ public class KafkaProducer {
             throw new RuntimeException("Failed to serialize/send event", e);
         }
     }
+
+    public void sendBillingAccountEvent(Patient patient) {
+        try {
+            KafkaEvent event = KafkaEvent.builder()
+                    .patientId(patient.getId().toString())
+                    .name(patient.getName())
+                    .email(patient.getEmail())
+                    .eventType("BILLING_ACCOUNT_PENDING")
+                    .build();
+            kafkaTemplate.send("billing.account.pending", event);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize/send event", e);
+        }
+    }
 }
