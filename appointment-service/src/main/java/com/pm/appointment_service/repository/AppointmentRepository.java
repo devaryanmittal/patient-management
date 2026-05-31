@@ -2,6 +2,7 @@ package com.pm.appointment_service.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,5 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     List<Appointment> findByStartTimeBetween(LocalDateTime startTime, LocalDateTime endTime);
 
+    Optional<Appointment> findByPatientId(UUID patientId);
 }

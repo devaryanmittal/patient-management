@@ -26,7 +26,6 @@ public class KafkaConsumer {
         cachedPatient.setFullName(event.getName());
         cachedPatient.setEmail(event.getEmail());
         cachedPatient.setUpdatedAt(Instant.now());
-
         cachedPatientRepository.save(cachedPatient);
     }
 }
