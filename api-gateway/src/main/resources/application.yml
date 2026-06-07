@@ -18,7 +18,7 @@ spring:
       routes:
         # Route for auth-service
         - id: auth-service-route
-          uri: http://auth-service:4005
+          uri: lb://AUTH-SERVICE
           predicates:
             - Path=/auth/**
           filters:
@@ -26,14 +26,13 @@ spring:
 
         # Route for /api/patients/** to patient-service
         - id: patient-service-route
-          uri: http://patient-service:4000
+          uri: lb://PATIENT-SERVICE
           predicates:
             - Path=/api/patients/**
           filters:
             - StripPrefix=1
             - JwtValidation
 
-      routes:
         # ==========================================
         # NEW ROUTE FOR CHATBOT MICROSERVICE
         # ==========================================
@@ -48,7 +47,7 @@ spring:
         # Swagger UI (Patient Service)
         # ---------------------------
         - id: patient-swagger-ui
-          uri: http://patient-service:4000
+          uri: lb://PATIENT-SERVICE
           predicates:
             - Path=/swagger-ui/**
 
@@ -56,7 +55,6 @@ spring:
         # OpenAPI Docs (Patient Service)
         # ---------------------------
         - id: patient-api-docs
-          uri: http://patient-service:4000
+          uri: lb://PATIENT-SERVICE
           predicates:
             - Path=/v3/api-docs/**
-

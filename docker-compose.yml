@@ -177,12 +177,13 @@ services:
     ports:
       - "4004:4004"
     depends_on:
-      - patient-service
       - eureka-server
+      - redis
+      - auth-service
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      AUTH_SERVICE_URL: http://auth-service:4005
       
-
     # ---------------------------
   # Auth Service
   # ---------------------------
