@@ -32,15 +32,15 @@ import io.github.resilience4j.retry.annotation.Retry;
 public class PatientService {
 
     private final PatientRepository patientRepository;
-    private final BillingInterface patientInterface;
+    private final BillingInterface billingInterface;
     private final KafkaProducer kafkaProducer;
 
     private PatientService self;
 
-    public PatientService(PatientRepository patientRepository, BillingInterface patientInterface,
+    public PatientService(PatientRepository patientRepository, BillingInterface billingInterface,
             KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
-        this.patientInterface = patientInterface;
+        this.billingInterface = billingInterface;
         this.kafkaProducer = kafkaProducer;
     }
 
@@ -98,7 +98,7 @@ public class PatientService {
         billingRequest.setEmail(savedPatient.getEmail());
         billingRequest.setPatientId(savedPatient.getId().toString());
         billingRequest.setAccountType("STANDARD");
-        patientInterface.createBillingAccount(billingRequest);
+        billingInterface.createBillingAccount(billingRequest);
     }
 
     public void callBillingServiceFallback(Patient savedPatient, Throwable e) {

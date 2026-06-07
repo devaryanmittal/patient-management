@@ -267,7 +267,23 @@ services:
       - kafka
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-  
+
+  # ---------------------------
+  # Chatbot Service
+  # ---------------------------
+  chatbot-service:
+    build: ./chatbot-service
+    container_name: chatbot-service
+    ports:
+      - "4008:4008"
+    depends_on:
+      - eureka-server
+    environment:
+      SPRING_AI_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   postgres_data:
   billing_postgres_data:

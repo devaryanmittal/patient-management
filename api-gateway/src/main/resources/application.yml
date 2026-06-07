@@ -33,6 +33,17 @@ spring:
             - StripPrefix=1
             - JwtValidation
 
+      routes:
+        # ==========================================
+        # NEW ROUTE FOR CHATBOT MICROSERVICE
+        # ==========================================
+        - id: chatbot-service
+          uri: lb://CHATBOT-SERVICE
+          predicates:
+            - Path=/api/chatbot/**
+          filters:
+            - RemoveRequestHeader=Cookie
+
         # ---------------------------
         # Swagger UI (Patient Service)
         # ---------------------------
@@ -48,3 +59,4 @@ spring:
           uri: http://patient-service:4000
           predicates:
             - Path=/v3/api-docs/**
+
